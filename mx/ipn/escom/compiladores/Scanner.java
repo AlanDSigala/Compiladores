@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class Scanner {
 
-    private String source;
+    private final String source;
 
     private final List<Token> tokens = new ArrayList<>();
 
@@ -49,11 +49,8 @@ public class Scanner {
         int iLexema = 0;
         int fLexema;
         String lexema;
-        boolean dentroComentario = false; // Nueva variable para rastrear si estás dentro de un comentario
 
         //Aquí va el corazón del scanner.
-        source = source.replaceAll("/\\*.*?\\*/", "");
-        source = source.replaceAll("//.*?//", "");
         for (int i = 0; i < source.length(); i++) {
             char vistazo = source.charAt(i);
             fLexema = i;
@@ -62,33 +59,35 @@ public class Scanner {
             estado = OpeRelacional.CompIfIsOpRel(estado, vistazo);
 
             //System.out.println("flag " + estado);
-            /*if (vistazo == '/' && i + 1 < source.length() && source.charAt(i + 1) == '/') {
-                while (i < source.length() && source.charAt(i) != '\n') {
-                    i++;
-                }
-                iLexema = fLexema + 1;
-                continue;
-            }
-
-            // Ignorar comentarios multilinea
-            if (!dentroComentario && vistazo == '/' && i + 1 < source.length() && source.charAt(i + 1) == '*') {
-                dentroComentario = true;
-                i += 2;
-                continue;
-            }
-            if (dentroComentario && vistazo == '*' && i + 1 < source.length() && source.charAt(i + 1) == '/') {
-                dentroComentario = false;
-                i += 2;
-                continue;
-            }
-            if (dentroComentario) {
-                iLexema = fLexema + 1;
-                continue;
-
-            }*/
 
             switch (estado){
                 case 0:
+                    //Comentario de una linea
+                    if (vistazo == '/' && source.charAt(i + 1) == '/' ) {
+                        while (source.charAt(i) != '\n' && source.charAt(i) != '\0') {
+                            i++;
+                            fLexema = i;
+                        }
+                        iLexema = fLexema;
+                        break;
+                    }
+
+                    // Ignorar comentarios multilinea
+                    if (vistazo == '/' && source.charAt(i + 1) == '*') {
+                        while (source.charAt(i) != '\n' && source.charAt(i) != '\0') {
+                            if (source.charAt(i) == '*' && source.charAt(i + 1) == '/'){
+                                i ++;
+                                fLexema = i + 1;
+                                break;
+                            }
+                            i++;
+                            fLexema = i;
+                        }
+
+                        iLexema = fLexema;
+                        continue;
+                    }
+                    //Ignorar espacios en blanco
                     if (vistazo == ' ' || vistazo == '\t'){
                         iLexema = fLexema + 1;
                         continue;
@@ -96,21 +95,20 @@ public class Scanner {
                         linea++;
                     }
 
+                    //Entra al diagrama de transicion para los numeros sin signo
                     if (Numbers.isDigit(vistazo)){
-                      //Entra al diagrama de transicion para los numeros sin signo
                       estado = 12;
                       estado = Numbers.CompIfIsNumber(estado, vistazo);
                     }
 
+                    //Entra al diagrama de transicion para los identificadores y palabras reservadas
                     if(Letra.isLetter(vistazo)){
-                        //Entra al diagrama de transicion para los identificadores y palabras reservadas
                         estado = 9;
                         estado = Letra.CompIfIsLetter(estado, vistazo);
                     }
 
+                    //Entra al automata de los operadores relacionales
                     if(OpeRelacional.isOpRel(vistazo)){
-                        //Entra al automata de los operadores relacionales
-                        estado = 0;
                         estado = OpeRelacional.CompIfIsOpRel(estado, vistazo);
                     }
 
@@ -119,7 +117,6 @@ public class Scanner {
                         iLexema = fLexema + 1;
                         continue;
                     }
-
                     break;
                     //Estados finales
                 case 19:
@@ -198,12 +195,7 @@ public class Scanner {
                     i--;
                     break;
             }
-
-
-            /**/
         }
-
-
 
         //Token de fin de archivo
         tokens.add(new Token(TipoToken.EOF, "", null, linea));
